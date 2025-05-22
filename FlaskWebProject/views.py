@@ -34,7 +34,7 @@ def new_post():
     if form.validate_on_submit():
         post = Post()
         post.save_changes(form, request.files['image_path'], current_user.id, new=True)
-        return ct(url_for('home'))
+        return redirect(url_for('home'))
     return render_template(
         'post.html',
         title='Create Post',
@@ -50,7 +50,7 @@ def post(id):
     form = PostForm(formdata=request.form, obj=post)
     if form.validate_on_submit():
         post.save_changes(form, request.files['image_path'], current_user.id)
-        return ct(url_for('home'))
+        return redirect(url_for('home'))
     return render_template(
         'post.html',
         title='Edit Post',
@@ -61,7 +61,7 @@ def post(id):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return ct(url_for('home'))
+        return redirect(url_for('home'))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -128,14 +128,14 @@ def _save_cache(cache):
 def _build_msal_app(cache=None, authority=None):
      # TODO: Return a ConfidentialClientApplication
      return msal.ConfidentialClientApplication(
-     Config.CLIENT_ID, authority=authority or Config.AUTHORITY,
-     client_credential=Config.CLIENT_SECRET, token_cache=cache
- )
+         Config.CLIENT_ID, authority=authority or Config.AUTHORITY,
+         client_credential=Config.CLIENT_SECRET, token_cache=cache
+     )
     
 def _build_auth_url(authority=None, scopes=None, state=None):
      # TODO: Return the full Auth Request URL with appropriate Redirect URI
      return _build_msal_app(authority=authority).get_authorization_request_url(
-     scopes or [],
-     state=state or str(uuid.uuid4()),
-     redirect_uri=url_for('authorized', _external=True, _scheme='https')
- )
+         scopes or [],
+         state=state or str(uuid.uuid4()),
+         redirect_uri=url_for('authorized', _external=True, _scheme='https')
+     )
