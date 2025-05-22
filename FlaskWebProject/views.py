@@ -34,7 +34,7 @@ def new_post():
     if form.validate_on_submit():
         post = Post()
         post.save_changes(form, request.files['image_path'], current_user.id, new=True)
-        return redirect(url_for('home'))
+        return ct(url_for('home'))
     return render_template(
         'post.html',
         title='Create Post',
@@ -50,7 +50,7 @@ def post(id):
     form = PostForm(formdata=request.form, obj=post)
     if form.validate_on_submit():
         post.save_changes(form, request.files['image_path'], current_user.id)
-        return redirect(url_for('home'))
+        return ct(url_for('home'))
     return render_template(
         'post.html',
         title='Edit Post',
@@ -61,7 +61,7 @@ def post(id):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('home'))
+        return ct(url_for('home'))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -86,7 +86,10 @@ def authorized():
     if request.args.get('code'):
         cache = _load_cache()
         # TODO: Acquire a token from a built msal app, along with the appropriate redirect URI
-        result = None
+        result = _build_msal_app(cache=cache).acquire_token_by_authorization_code(
+             request.args.get('code'),
+             scopes=Config.SCOPE,
+             redirect_uri=url_for('authorized', _external=True, _scheme='https'))
         if "error" in result:
             return render_template("auth_error.html", result=result)
         session["user"] = result.get("id_token_claims")
@@ -112,12 +115,15 @@ def logout():
 
 def _load_cache():
     # TODO: Load the cache from `msal`, if it exists
-    cache = None
-    return cache
+     cache = msal.SerializableTokenCache()
+     if session.get('token_cache'):
+         cache.deserialize(session['token_cache'])
+     return cache
 
 def _save_cache(cache):
     # TODO: Save the cache, if it has changed
-    pass
+     if cache.has_state_changed:
+         session['token_cache'] = cache.serialize()
 
 def _build_msal_app(cache=None, authority=None):
      # TODO: Return a ConfidentialClientApplication
